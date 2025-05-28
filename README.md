@@ -1,6 +1,3 @@
-# demo-repo
-This is an example repo
+# Maths Game
+This is a maths game.
 
-## EDIT
-
-This is an edit.
