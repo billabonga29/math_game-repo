@@ -55,15 +55,15 @@ def main():
     active = False
 
     # Generates a random addition question for easy difficulty.
-    def easy_question():
+    def generate_easy_question():
         # Generates random numbers.
         number1 = random.randint(1, 9)
         number2 = random.randint(1, 9)
         # Returns the question and answer.
-        return {"question": f"{number1} + {number2}?", "answer": str(number1 + number2), "params": None}
+        return {"question": f"What is {number1} + {number2}?", "answer": str(number1 + number2), "params": None}
 
     # Generates random area questions for medium difficulty.
-    def medium_question():
+    def generate_medium_question():
         # Picks a random shape out of the options.
         shape = random.choice(["square", "rectangle", "triangle", "circle"])
         
@@ -125,7 +125,7 @@ def main():
             }
 
     # This function generates calculus question used for the hard difficulty.
-    def hard_question():
+    def generate_hard_question():
 
         # Picks between differentiation and integration question types.
         qtype = random.choice(["diff_question", "int_question"])
@@ -184,26 +184,26 @@ def main():
     def get_random_question(difficulty):
         # This calls easy question generator.
         if difficulty == "Easy":
-            return easy_question()
+            return generate_easy_question()
 
         # This calls medium question generator.
         elif difficulty == "Medium":
-            return medium_question()
+            return generate_medium_question()
 
         # This calls hard question generator.
         elif difficulty == "Hard":
-            return hard_question()
+            return generate_hard_question()
 
     # This function builds a question pool.
-    def question_pool(difficulty):
+    def build_question_pool(difficulty):
         questions = []
         if difficulty == "Medium":
-            questions = [medium_question() for _ in range(QUESTIONS_TO_WIN * 2)]
+            questions = [generate_medium_question() for _ in range(QUESTIONS_TO_WIN * 2)]
         elif difficulty == "Hard":
             # Converts tuple into dictionary to prevent error.
-            questions = [{"question": q, "answer": a} for q, a in [hard_question() for _ in range(QUESTIONS_TO_WIN * 2)]]
+            questions = [{"question": q, "answer": a} for q, a in [generate_hard_question() for _ in range(QUESTIONS_TO_WIN * 2)]]
         else:
-            questions = [easy_question() for _ in range(QUESTIONS_TO_WIN * 2)]
+            questions = [generate_easy_question() for _ in range(QUESTIONS_TO_WIN * 2)]
 
         # Shuffles the order of the questions.
         random.shuffle(questions)
@@ -220,6 +220,7 @@ def main():
         # Creates window.
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Math Race Challenge")
+        pygame.display.set_mode((WIDTH, HEIGHT))
 
         # Creates clock for the game.
         clock = pygame.time.Clock()
@@ -235,7 +236,7 @@ def main():
         player_score = 0
 
         # Calls questions from the question pool.
-        questions = question_pool(difficulty)
+        questions = build_question_pool(difficulty)
 
         # Sets speed of AI based on the difficulty selected.
         ai_speed = {"Easy": 40, "Medium": 25, "Hard": 10}[difficulty]  
@@ -256,8 +257,12 @@ def main():
             screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 2))
 
             # Instructions for user.
-            instruction = FONT.render(f"Solve {QUESTIONS_TO_WIN} questions to win! (Answer Calculus questions in form ax^n)", True, BLACK, WHITE)
-            screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, HEIGHT // 2 + 40))
+            line1 = FONT.render(f"Solve {QUESTIONS_TO_WIN} questions to win!", True, BLACK, WHITE)
+            screen.blit(line1, (WIDTH // 2 - line1.get_width() // 2, HEIGHT // 2 + 40))
+            line2 = FONT.render("Answer calculus questions in the form ax^n. Don't use brackets for fractions e.g. type 4/3x instead of (4/3)x.", True, BLACK, WHITE)
+            screen.blit(line2, (WIDTH // 2 - line2.get_width() // 2, HEIGHT // 2 + 80))
+            line3 = FONT.render("Type answers directly on the keyboard and press Enter to submit.", True, BLACK, WHITE)
+            screen.blit(line3, (WIDTH // 2 - line3.get_width() // 2, HEIGHT // 2 + 120))
 
             # Begins game if user presses space button.
             pygame.display.flip()
@@ -391,19 +396,21 @@ def main():
             # Shows a feedback message if it's active.
             if feedback_message and time.time() < feedback_timer:
                 msg_surface = FONT.render(feedback_message, True, feedback_color)
-                screen.blit(msg_surface, (20, HEIGHT - 120))
+                screen.blit(msg_surface, (20, HEIGHT - 160))
 
             pygame.display.flip()
 
             # Checks win conditions.
             if player_x >= WIDTH - CAR_WIDTH:
                 total_time = time.time() - start_time
-                messagebox.showinfo("You Win!", f"You beat AI in {total_time:.2f} seconds!")
+                message = f"You beat the AI in {total_time:.2f} seconds!"
                 save_to_leaderboard(player_name, total_time, difficulty)
+                play_again = messagebox.askquestion("You Win!", f"{message}\n\nPlay again?")
                 running = False
                 break
             elif ai_x >= WIDTH - CAR_WIDTH:
-                messagebox.showinfo("You Lose", "The AI won this time. Try again!")
+                message = "The AI won this time. Try again!"
+                play_again = messagebox.askquestion("You Lose", f"{message}\n\nPlay again?")
                 running = False
                 break
 
@@ -439,16 +446,22 @@ def main():
                         feedback_timer = time.time() + 1.5  
 
                         # Checks if player has reached the winning score.
-                        if player_score >= QUESTIONS_TO_WIN:
+                        if player_x >= WIDTH - CAR_WIDTH:
                             total_time = time.time() - start_time
-                            messagebox.showinfo("You Win!", f"You beat the AI in {total_time:.2f} seconds!")
+                            message = f"You beat the AI in {total_time:.2f} seconds!"
                             save_to_leaderboard(player_name, total_time, difficulty)
+                            play_again = messagebox.askquestion("You Win!", f"{message}\n\nPlay again?")
                             running = False
                             break
-
+                        elif ai_x >= WIDTH - CAR_WIDTH:
+                            message = "The AI won this time. Try again!"
+                            play_again = messagebox.askquestion("You Lose", f"{message}\n\nPlay again?")
+                            running = False
+                            break
+                        
                         # Gets next question and replenishes question pool if empty.
                         if not questions:
-                            questions = question_pool(difficulty)
+                            questions = build_question_pool(difficulty)
 
                         current_question = questions.pop()
                         input_text = ""
@@ -464,6 +477,11 @@ def main():
                                 if event.unicode in "0123456789.+-*/xXcC^ ":
                                     input_text += event.unicode
 
+        if play_again == 'yes':
+            start_game()
+        else:
+            pygame.quit()
+            quit()
 
 
     # Button to display the leaderboard.
@@ -490,7 +508,7 @@ def main():
             # Creates the leaderboard window.
             leaderboard_window = tk.Toplevel()
             leaderboard_window.title(f"{difficulty} Leaderboard")
-            leaderboard_window.geometry("350x400")
+            leaderboard_window.geometry("350x450")
 
             # Creates the header label for the different leaderboard windows.
             tk.Label(leaderboard_window, text=f"{difficulty} Leaderboard", font=("Helvetica", 16, "bold")).pack(pady=10)
@@ -516,16 +534,19 @@ def main():
             for name, time_taken in leaderboard_entries:
                 tree.insert("", tk.END, values=(name, f"{time_taken:.2f}"))
 
-            # Adds a scrollbar
+            # Adds a scrollbar.
             scrollbar = ttk.Scrollbar(leaderboard_window, orient="vertical", command=tree.yview)
             tree.configure(yscroll=scrollbar.set)
             scrollbar.pack(side="right", fill="y")
             tree.pack(padx=10, pady=10, fill="both", expand=True)
 
+            # Back button.
+            tk.Button(leaderboard_window, text="Back", font=("Helvetica", 12),command=leaderboard_window.destroy).pack(pady=10)
+
         # Selector window.
         selector = tk.Toplevel()
         selector.title("Leaderboard Selector")
-        selector.geometry("250x200")
+        selector.geometry("250x250")
         
         # Adds label to ask user what leaderboard they want to see based off of difficulty.
         tk.Label(selector, text="Select Leaderboard:", font=("Helvetica", 14, "bold")).pack(pady=(20,5))
@@ -535,19 +556,11 @@ def main():
             tk.Button(selector, text=diff, font=("Helvetica", 12), width=10,
                       command=lambda d=diff: open_difficulty_board(d)).pack(pady=5)
 
-
+        # Back button.
+        tk.Button(selector, text="Back", font=("Helvetica", 12),command=selector.destroy).pack(pady=10)
 
     # Starts the game.
     def start_game():
-        # Retrieves data for name and selected difficulty.
-        def difficulty_select(selected_difficulty):
-            name = name_entry.get().strip()
-            if not name:
-                messagebox.showwarning("Input Error", "Please enter your name.")
-                return
-            root.destroy()
-            run_game(name, selected_difficulty)
-
         # Window Settings.
         root = tk.Tk()
         root.title("Math Racing Game Setup")
@@ -569,19 +582,43 @@ def main():
         name_entry = tk.Entry(root, font=("Helvetica", 14))
         name_entry.pack(pady=(1,10))
 
+         # Retrieves data for name and selected difficulty.
+        def on_difficulty_select(selected_difficulty):
+            nonlocal root
+            name = name_entry.get().strip()
+            # Validation for name.
+            if not name:
+                messagebox.showwarning("Error!", "Please enter your name.")
+                name_entry.delete(0, tk.END)
+                return
+            if len(name) > 15:
+                messagebox.showwarning("Error!", "Name must be less than or equal to 15 characters.")
+                name_entry.delete(0, tk.END)
+                return
+            if not name.isalpha():
+                messagebox.showwarning("Error!", "Name can only contain letters.")
+                name_entry.delete(0, tk.END)
+                return
+            root.destroy()
+            run_game(name, selected_difficulty)
+            
         # Difficulty options.
         tk.Label(root, text="Select Difficulty:", font=("Helvetica", 14)).pack(pady=10)
 
         btn_frame = tk.Frame(root)
         btn_frame.pack(pady=10)
 
-        tk.Button(btn_frame, text = "Easy", width = 10, font =("Helvetica", 12), command = lambda: difficulty_select("Easy")).grid(row = 0, column = 0, padx = 5)
-        tk.Button(btn_frame, text = "Medium", width = 10, font =("Helvetica", 12), command = lambda: difficulty_select("Medium")).grid(row = 0, column = 1, padx = 5)
-        tk.Button(btn_frame, text = "Hard", width = 10, font =("Helvetica", 12), command = lambda: difficulty_select("Hard")).grid(row = 0, column = 2, padx = 5)
+        tk.Button(btn_frame, text = "Easy", width = 10, font =("Helvetica", 12), command = lambda: on_difficulty_select("Easy")).grid(row = 0, column = 0, padx = 5)
+        tk.Button(btn_frame, text = "Medium", width = 10, font =("Helvetica", 12), command = lambda: on_difficulty_select("Medium")).grid(row = 0, column = 1, padx = 5)
+        tk.Button(btn_frame, text = "Hard", width = 10, font =("Helvetica", 12), command = lambda: on_difficulty_select("Hard")).grid(row = 0, column = 2, padx = 5)
 
         # Leaderboard button.
         tk.Button(root, text="Leaderboard", font=("Helvetica", 12), command=show_leaderboard).pack(pady=10)
 
+        # Quit Button 
+        quit_button = tk.Button(root, text="Quit", font=("Helvetica", 12), command=root.destroy)
+        quit_button.place(relx=1.0, rely=1.0, x=-20, y=-20, anchor='se')
+        
         root.mainloop()
 
 
